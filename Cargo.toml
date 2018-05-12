@@ -1,0 +1,9 @@
+[package]
+name = "website-icon-extract"
+version = "0.1.0"
+authors = ["segler-alex <segler_alex@web.de>"]
+license = "MIT"
+categories = ["network-programming", "parsing"]
+repository = "https://github.com/segler-alex/website-icon-extract-rust"
+
+[dependencies]
