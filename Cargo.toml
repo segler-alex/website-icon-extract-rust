@@ -7,3 +7,6 @@ categories = ["network-programming", "parsing"]
 repository = "https://github.com/segler-alex/website-icon-extract-rust"
 
 [dependencies]
+
+[dev-dependencies]
+clap = "2.31.2"
