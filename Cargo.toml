@@ -7,6 +7,9 @@ categories = ["network-programming", "parsing"]
 repository = "https://github.com/segler-alex/website-icon-extract-rust"
 
 [dependencies]
+native-tls = "0.1.5"
+url = "1.7.0"
+quick-xml = "0.12.1"
 
 [dev-dependencies]
 clap = "2.31.2"
