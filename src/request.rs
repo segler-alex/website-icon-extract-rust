@@ -191,6 +191,10 @@ impl Request {
         &self.content
     }
 
+    pub fn get_code(&self) -> u32{
+        return self.info.code;
+    }
+
     fn read_stream_until(stream: &mut Read, condition: &'static [u8]) -> BoxResult<String> {
         let mut buffer = vec![0; 1];
         let mut bytes = Vec::new();

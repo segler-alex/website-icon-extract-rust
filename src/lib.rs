@@ -15,13 +15,31 @@ use quick_xml::events::Event;
 
 pub fn test(url: &str) -> Result<Vec<String>, Box<Error>> {
     let x = Request::new(url, "TEST", 5)?;
-    let list: Vec<String> = analyze_location(x)?;
-    let list_filtered = list.iter()
+    let mut list: Vec<String> = analyze_location(x)?;
+    list.push(String::from("/favicon.ico"));
+    let list_filtered: Vec<String> = list.iter()
         .map(|x| normalize_url(url, x))
         .filter(|x| x.is_ok())
         .map(|x| x.unwrap())
+        .filter(|x| check_connection(x))
         .collect();
     Ok(list_filtered)
+}
+
+fn check_connection(url: &str) -> bool {
+    let r = Request::new(url, "TEST", 5);
+    match r {
+        Ok(r) => {
+            let code = r.get_code();
+            if code == 200 {
+                return true;
+            }
+            return false;
+        }
+        _ => {
+            return false;
+        }
+    }
 }
 
 fn normalize_url(base_url_str: &str, url: &str) -> Result<String, Box<Error>> {
@@ -71,7 +89,6 @@ fn extract(
         let name: String = name.unwrap().to_lowercase();
         let content = content.unwrap().to_lowercase();
         if names.contains(&name) {
-            println!("FOUND {}", name);
             list.push(content.to_string());
         }
     }
