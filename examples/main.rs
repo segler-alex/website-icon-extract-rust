@@ -1,5 +1,4 @@
 extern crate website_icon_extract;
-extern crate clap;
 extern crate native_tls;
 
 use std::env;
