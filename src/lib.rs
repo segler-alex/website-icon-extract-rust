@@ -13,19 +13,20 @@ use quick_xml::events::Event;
 
 pub fn test(url: &str) -> Result<Vec<String>, Box<Error>> {
     let x = Request::new(url, "TEST", 5)?;
-    analyze_location(x)?;
-    Ok(Vec::new())
+    let list: Vec<String> = analyze_location(x)?;
+    Ok(list)
 }
 
-fn analyze_location(mut x: Request) -> Result<(), Box<Error>> {
+fn analyze_location(mut x: Request) -> Result<Vec<String>, Box<Error>> {
     let content_type = x.get_header("content-type");
     if let Some(content_type) = content_type {
         if content_type.starts_with("text/html") {
-            x.read_content();
-            analyze_content(x.get_content())?;
+            let result = x.read_content()?;
+            let list = analyze_content(x.get_content())?;
+            return Ok(list);
         }
     }
-    Ok(())
+    Ok(Vec::new())
 }
 
 fn attr_to_hash(
@@ -45,7 +46,7 @@ fn attr_to_hash(
 }
 
 fn extract(
-    attrs_hashed: HashMap<String, String>,
+    attrs_hashed: &HashMap<String, String>,
     names: &Vec<String>,
     name: &str,
     content: &str,
@@ -57,8 +58,44 @@ fn extract(
         let name: String = name.unwrap().to_lowercase();
         let content = content.unwrap().to_lowercase();
         if names.contains(&name) {
+            println!("FOUND {}", name);
             list.push(content.to_string());
         }
+    }
+    list
+}
+
+fn check_start_elem(reader: &quick_xml::Reader<&[u8]>, e: &quick_xml::events::BytesStart<'_>) -> Vec<String> {
+    let meta_name_attrs: Vec<String> = vec![
+        String::from("msapplication-TileImage"),
+        String::from("msapplication-square70x70logo"),
+        String::from("msapplication-square150x150logo"),
+        String::from("msapplication-square310x310logo"),
+        String::from("msapplication-wide310x150logo"),
+    ];
+    let meta_property_attrs: Vec<String> = vec![
+        String::from("og:image"),
+    ];
+    let link_rel_attrs: Vec<String> = vec![
+        String::from("apple-touch-icon"),
+        String::from("shortcut icon"),
+        String::from("icon"),
+    ];
+    let item: String = reader.decode(e.name()).to_string().to_lowercase();
+    let mut list: Vec<String> = Vec::new();
+
+    if item == "meta" {
+        let attrs_hashed = attr_to_hash(&reader, e.attributes());
+        let l = extract(&attrs_hashed, &meta_name_attrs, "name", "content");
+        list.extend(l);
+
+        let l = extract(&attrs_hashed, &meta_property_attrs, "property", "content");
+        list.extend(l);
+    }
+    if item == "link" {
+        let attrs_hashed = attr_to_hash(&reader, e.attributes());
+        let l = extract(&attrs_hashed, &link_rel_attrs, "rel", "href");
+        list.extend(l);
     }
     list
 }
@@ -69,41 +106,14 @@ fn analyze_content(content: &str) -> Result<Vec<String>, Box<Error>> {
     reader.check_end_names(false);
     let mut buf = Vec::new();
     let mut list: Vec<String> = Vec::new();
-    let meta_attrs: Vec<String> = vec![
-        String::from("msapplication-TileImage"),
-        String::from("msapplication-square70x70logo"),
-        String::from("msapplication-square150x150logo"),
-        String::from("msapplication-square310x310logo"),
-        String::from("msapplication-wide310x150logo"),
-    ];
-    let link_attrs: Vec<String> = vec![String::from("shortcut icon"), String::from("icon")];
+
     loop {
         match reader.read_event(&mut buf) {
             Ok(Event::Empty(ref e)) => {
-                let item: String = reader.decode(e.name()).to_string().to_lowercase();
-                if item == "meta" {
-                    let attrs_hashed = attr_to_hash(&reader, e.attributes());
-                    let l = extract(attrs_hashed, &link_attrs, "name", "content");
-                    list.extend(l);
-                }
-                if item == "link" {
-                    let attrs_hashed = attr_to_hash(&reader, e.attributes());
-                    let l = extract(attrs_hashed, &meta_attrs, "rel", "href");
-                    list.extend(l);
-                }
+                list.extend(check_start_elem(&reader, e));
             }
             Ok(Event::Start(ref e)) => {
-                let item: String = reader.decode(e.name()).to_string().to_lowercase();
-                if item == "meta" {
-                    let attrs_hashed = attr_to_hash(&reader, e.attributes());
-                    let l = extract(attrs_hashed, &link_attrs, "name", "content");
-                    list.extend(l);
-                }
-                if item == "link" {
-                    let attrs_hashed = attr_to_hash(&reader, e.attributes());
-                    let l = extract(attrs_hashed, &meta_attrs, "rel", "href");
-                    list.extend(l);
-                }
+                list.extend(check_start_elem(&reader, e));
             }
             Ok(Event::End(_)) => {}
             Ok(Event::Text(_)) => {}
