@@ -5,6 +5,7 @@ authors = ["segler-alex <segler_alex@web.de>"]
 license = "MIT"
 categories = ["network-programming", "parsing"]
 repository = "https://github.com/segler-alex/website-icon-extract-rust"
+description = "extract favicon link paths from a html page from different standards"
 
 [dependencies]
 native-tls = "0.1.5"
