@@ -4,6 +4,8 @@ extern crate url;
 
 mod request;
 
+use url::Url;
+
 use request::Request;
 use std::collections::HashMap;
 use std::error::Error;
@@ -14,14 +16,25 @@ use quick_xml::events::Event;
 pub fn test(url: &str) -> Result<Vec<String>, Box<Error>> {
     let x = Request::new(url, "TEST", 5)?;
     let list: Vec<String> = analyze_location(x)?;
-    Ok(list)
+    let list_filtered = list.iter()
+        .map(|x| normalize_url(url, x))
+        .filter(|x| x.is_ok())
+        .map(|x| x.unwrap())
+        .collect();
+    Ok(list_filtered)
+}
+
+fn normalize_url(base_url_str: &str, url: &str) -> Result<String, Box<Error>> {
+    let base_url = Url::parse(base_url_str)?;
+    let abs_url = base_url.join(&url)?;
+    return Ok(abs_url.to_string());
 }
 
 fn analyze_location(mut x: Request) -> Result<Vec<String>, Box<Error>> {
     let content_type = x.get_header("content-type");
     if let Some(content_type) = content_type {
         if content_type.starts_with("text/html") {
-            let result = x.read_content()?;
+            x.read_content()?;
             let list = analyze_content(x.get_content())?;
             return Ok(list);
         }
@@ -65,7 +78,10 @@ fn extract(
     list
 }
 
-fn check_start_elem(reader: &quick_xml::Reader<&[u8]>, e: &quick_xml::events::BytesStart<'_>) -> Vec<String> {
+fn check_start_elem(
+    reader: &quick_xml::Reader<&[u8]>,
+    e: &quick_xml::events::BytesStart<'_>,
+) -> Vec<String> {
     let meta_name_attrs: Vec<String> = vec![
         String::from("msapplication-TileImage"),
         String::from("msapplication-square70x70logo"),
@@ -73,9 +89,7 @@ fn check_start_elem(reader: &quick_xml::Reader<&[u8]>, e: &quick_xml::events::By
         String::from("msapplication-square310x310logo"),
         String::from("msapplication-wide310x150logo"),
     ];
-    let meta_property_attrs: Vec<String> = vec![
-        String::from("og:image"),
-    ];
+    let meta_property_attrs: Vec<String> = vec![String::from("og:image")];
     let link_rel_attrs: Vec<String> = vec![
         String::from("apple-touch-icon"),
         String::from("shortcut icon"),
