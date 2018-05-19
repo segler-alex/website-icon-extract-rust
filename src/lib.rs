@@ -1,13 +1,14 @@
 //! This library connects to a given url and tries to find references to icons that represent the page.
 //! Multiple standards are used for this:
-//! * default favicon.ico in root and as <link rel>
-//!   https://en.wikipedia.org/wiki/Favicon
+//! * default favicon.ico in root and as "link rel"
+//!   [wikipedia.org/wiki/Favicon](https://en.wikipedia.org/wiki/Favicon)
 //! * apple touch icon
-//!   https://developer.apple.com/library/content/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html
+//!   [Apple docs](https://developer.apple.com/library/content/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html)
 //! * Open graph image
-//!   http://ogp.me/
+//!   [ogp.me](http://ogp.me/)
 //! * Windows 8 tile images
-//!   https://technet.microsoft.com/en-us/windows/dn255024(v=vs.60)#msapplication-TileImage
+//!   [Microsoft technet](https://technet.microsoft.com/en-us/windows/dn255024(v=vs.60)#msapplication-TileImage)
+//! 
 //! All images are converted to absolute urls and checked if connecting to them works.
 //! It does a GET request, but closes the connection after the http header.
 extern crate native_tls;
