@@ -78,6 +78,30 @@ impl Request {
         None
     }
 
+    pub fn new_recursive(url_str: &str, agent: &str, timeout: u32) -> BoxResult<Request> {
+        let mut depth = 0;
+        let mut r = Request::new(url_str, agent, timeout);
+        loop{
+            if r.is_ok(){
+                let r_unwrapped = r.unwrap();
+                let code = r_unwrapped.get_code();
+                if code == 301 || code == 302 {
+                    if depth < 5{
+                        depth = depth + 1;
+                        let l = r_unwrapped.get_header("location");
+                        if l.is_some(){
+                            let l = l.unwrap();
+                            r = Request::new(&l, agent, timeout);
+                            continue;
+                        }
+                    }
+                }
+                return Ok(r_unwrapped);
+            }
+            return r;
+        }
+    }
+
     pub fn new(url_str: &str, agent: &str, timeout: u32) -> BoxResult<Request> {
         let url = Url::parse(url_str)?;
 

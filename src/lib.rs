@@ -33,7 +33,7 @@ use quick_xml::events::Event;
 /// * `user_agent` - User agent header string for http requests
 /// * `tcp_timeout` - Http timeout in seconds
 pub fn extract_icons(url: &str, user_agent: &str, tcp_timeout: u32) -> Result<Vec<String>, Box<Error>> {
-    let x = Request::new(url, user_agent, tcp_timeout)?;
+    let x = Request::new_recursive(url, user_agent, tcp_timeout)?;
     let mut list: Vec<String> = analyze_location(x)?;
     list.push(String::from("/favicon.ico"));
     let list_filtered: Vec<String> = list.iter()
@@ -46,7 +46,7 @@ pub fn extract_icons(url: &str, user_agent: &str, tcp_timeout: u32) -> Result<Ve
 }
 
 fn check_connection(url: &str, user_agent: &str, tcp_timeout: u32) -> bool {
-    let r = Request::new(url, user_agent, tcp_timeout);
+    let r = Request::new_recursive(url, user_agent, tcp_timeout);
     match r {
         Ok(r) => {
             let code = r.get_code();
