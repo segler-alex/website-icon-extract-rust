@@ -1,6 +1,6 @@
 [package]
 name = "website-icon-extract"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["segler-alex <segler_alex@web.de>"]
 license = "MIT"
 categories = ["network-programming", "parsing"]

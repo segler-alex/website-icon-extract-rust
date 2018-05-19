@@ -69,6 +69,12 @@ fn connect(addrs: Box<IntoIter<SocketAddr>>, timeout: u32) -> BoxResult<TcpStrea
     return Err(Box::new(RequestError::new("connection was not possible")));
 }
 
+fn normalize_url(base_url_str: &str, url: &str) -> Result<String, Box<Error>> {
+    let base_url = Url::parse(base_url_str)?;
+    let abs_url = base_url.join(&url)?;
+    return Ok(abs_url.to_string());
+}
+
 impl Request {
     pub fn get_header(&self, name: &str) -> Option<String> {
         let value: Option<&String> = self.info.headers.get(name);
@@ -91,7 +97,8 @@ impl Request {
                         let l = r_unwrapped.get_header("location");
                         if l.is_some(){
                             let l = l.unwrap();
-                            r = Request::new(&l, agent, timeout);
+                            let l_unwrapped = normalize_url(url_str, &l)?;
+                            r = Request::new(&l_unwrapped, agent, timeout);
                             continue;
                         }
                     }
