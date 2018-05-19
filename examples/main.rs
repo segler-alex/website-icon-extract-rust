@@ -7,7 +7,7 @@ use std::env;
 fn main() {
     match env::args().nth(1) {
         Some(url) => {
-            let list = website_icon_extract::test(&url);
+            let list = website_icon_extract::extract_icons(&url, "TEST", 5);
             match list {
                 Ok(o) => {
                     println!("list: {:?}", o);

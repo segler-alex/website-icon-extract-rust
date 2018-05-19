@@ -1,3 +1,15 @@
+//! This library connects to a given url and tries to find references to icons that represent the page.
+//! Multiple standards are used for this:
+//! * default favicon.ico in root and as <link rel>
+//!   https://en.wikipedia.org/wiki/Favicon
+//! * apple touch icon
+//!   https://developer.apple.com/library/content/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html
+//! * Open graph image
+//!   http://ogp.me/
+//! * Windows 8 tile images
+//!   https://technet.microsoft.com/en-us/windows/dn255024(v=vs.60)#msapplication-TileImage
+//! All images are converted to absolute urls and checked if connecting to them works.
+//! It does a GET request, but closes the connection after the http header.
 extern crate native_tls;
 extern crate quick_xml;
 extern crate url;
@@ -13,21 +25,27 @@ use std::error::Error;
 use quick_xml::Reader;
 use quick_xml::events::Event;
 
-pub fn test(url: &str) -> Result<Vec<String>, Box<Error>> {
-    let x = Request::new(url, "TEST", 5)?;
+/// Download and analyze a html page from http/https url.
+/// Return all found icon urls.
+/// # Arguments
+/// * `url` - An url to check
+/// * `user_agent` - User agent header string for http requests
+/// * `tcp_timeout` - Http timeout in seconds
+pub fn extract_icons(url: &str, user_agent: &str, tcp_timeout: u32) -> Result<Vec<String>, Box<Error>> {
+    let x = Request::new(url, user_agent, tcp_timeout)?;
     let mut list: Vec<String> = analyze_location(x)?;
     list.push(String::from("/favicon.ico"));
     let list_filtered: Vec<String> = list.iter()
         .map(|x| normalize_url(url, x))
         .filter(|x| x.is_ok())
         .map(|x| x.unwrap())
-        .filter(|x| check_connection(x))
+        .filter(|x| check_connection(x, user_agent, tcp_timeout))
         .collect();
     Ok(list_filtered)
 }
 
-fn check_connection(url: &str) -> bool {
-    let r = Request::new(url, "TEST", 5);
+fn check_connection(url: &str, user_agent: &str, tcp_timeout: u32) -> bool {
+    let r = Request::new(url, user_agent, tcp_timeout);
     match r {
         Ok(r) => {
             let code = r.get_code();
