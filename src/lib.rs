@@ -46,16 +46,16 @@ fn attr_to_hash(
 
 fn extract(
     attrs_hashed: HashMap<String, String>,
-    names: &Vec<&str>,
+    names: &Vec<String>,
     name: &str,
     content: &str,
 ) -> Vec<String> {
     let mut list: Vec<String> = vec![];
-    let name = attrs_hashed.get(name);
+    let name: Option<&String> = attrs_hashed.get(name);
     let content = attrs_hashed.get(content);
     if name.is_some() && content.is_some() {
-        let name: &str = name.unwrap();
-        let content = content.unwrap();
+        let name: String = name.unwrap().to_lowercase();
+        let content = content.unwrap().to_lowercase();
         if names.contains(&name) {
             list.push(content.to_string());
         }
@@ -69,18 +69,18 @@ fn analyze_content(content: &str) -> Result<Vec<String>, Box<Error>> {
     reader.check_end_names(false);
     let mut buf = Vec::new();
     let mut list: Vec<String> = Vec::new();
-    let meta_attrs: Vec<&str> = vec![
-        "msapplication-TileImage",
-        "msapplication-square70x70logo",
-        "msapplication-square150x150logo",
-        "msapplication-square310x310logo",
-        "msapplication-wide310x150logo",
+    let meta_attrs: Vec<String> = vec![
+        String::from("msapplication-TileImage"),
+        String::from("msapplication-square70x70logo"),
+        String::from("msapplication-square150x150logo"),
+        String::from("msapplication-square310x310logo"),
+        String::from("msapplication-wide310x150logo"),
     ];
-    let link_attrs: Vec<&str> = vec!["shortcut icon", "icon"];
+    let link_attrs: Vec<String> = vec![String::from("shortcut icon"), String::from("icon")];
     loop {
         match reader.read_event(&mut buf) {
             Ok(Event::Empty(ref e)) => {
-                let item = reader.decode(e.name()).to_string().to_lowercase();
+                let item: String = reader.decode(e.name()).to_string().to_lowercase();
                 if item == "meta" {
                     let attrs_hashed = attr_to_hash(&reader, e.attributes());
                     let l = extract(attrs_hashed, &link_attrs, "name", "content");
@@ -93,7 +93,7 @@ fn analyze_content(content: &str) -> Result<Vec<String>, Box<Error>> {
                 }
             }
             Ok(Event::Start(ref e)) => {
-                let item = reader.decode(e.name()).to_string().to_lowercase();
+                let item: String = reader.decode(e.name()).to_string().to_lowercase();
                 if item == "meta" {
                     let attrs_hashed = attr_to_hash(&reader, e.attributes());
                     let l = extract(attrs_hashed, &link_attrs, "name", "content");
