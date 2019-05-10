@@ -1,6 +1,6 @@
 [package]
 name = "website-icon-extract"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["segler-alex <segler_alex@web.de>"]
 license = "MIT"
 categories = ["network-programming", "parsing"]
@@ -8,8 +8,8 @@ repository = "https://github.com/segler-alex/website-icon-extract-rust"
 description = "extract favicon link paths from a html page from different standards"
 
 [dependencies]
-native-tls = "0.1.5"
-url = "1.7.0"
+native-tls = "0.2.3"
+url = "1.7.2"
 quick-xml = "0.12.1"
 
 [dev-dependencies]
