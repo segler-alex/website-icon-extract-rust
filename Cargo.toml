@@ -1,6 +1,6 @@
 [package]
 name = "website-icon-extract"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["segler-alex <segler_alex@web.de>"]
 license = "MIT"
 categories = ["network-programming", "parsing"]
@@ -9,7 +9,7 @@ description = "extract favicon link paths from a html page from different standa
 
 [dependencies]
 native-tls = "0.2.3"
-url = "1.7.2"
-quick-xml = "0.12.1"
+url = "2.0.0"
+quick-xml = "0.15.0"
 
 [dev-dependencies]
