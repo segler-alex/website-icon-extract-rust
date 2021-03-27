@@ -10,7 +10,7 @@ use std::error::Error;
 use url::Url;
 use std::collections::HashMap;
 
-type BoxResult<T> = Result<T, Box<Error>>;
+type BoxResult<T> = Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
 struct RequestError {
@@ -47,7 +47,7 @@ pub struct HttpHeaders {
 
 pub struct Request {
     info: HttpHeaders,
-    readable: Box<Read>,
+    readable: Box<dyn Read>,
     content_read_done: bool,
     content: String,
 }
@@ -58,7 +58,7 @@ use std::vec::IntoIter;
 
 fn connect(addrs: Box<IntoIter<SocketAddr>>, timeout: u32) -> BoxResult<TcpStream> {
     for addr in addrs {
-        let mut stream = TcpStream::connect_timeout(
+        let stream = TcpStream::connect_timeout(
             &addr,
             Duration::from_secs(timeout as u64),
         );
@@ -69,7 +69,7 @@ fn connect(addrs: Box<IntoIter<SocketAddr>>, timeout: u32) -> BoxResult<TcpStrea
     return Err(Box::new(RequestError::new("connection was not possible")));
 }
 
-fn normalize_url(base_url_str: &str, url: &str) -> Result<String, Box<Error>> {
+fn normalize_url(base_url_str: &str, url: &str) -> Result<String, Box<dyn Error>> {
     let base_url = Url::parse(base_url_str)?;
     let abs_url = base_url.join(&url)?;
     return Ok(abs_url.to_string());
@@ -88,15 +88,13 @@ impl Request {
         let mut depth = 0;
         let mut r = Request::new(url_str, agent, timeout);
         loop{
-            if r.is_ok(){
-                let r_unwrapped = r.unwrap();
+            if let Ok(r_unwrapped) = r {
                 let code = r_unwrapped.get_code();
                 if code == 301 || code == 302 {
                     if depth < 5{
                         depth = depth + 1;
                         let l = r_unwrapped.get_header("location");
-                        if l.is_some(){
-                            let l = l.unwrap();
+                        if let Some(l) = l {
                             let l_unwrapped = normalize_url(url_str, &l)?;
                             r = Request::new(&l_unwrapped, agent, timeout);
                             continue;
@@ -226,7 +224,7 @@ impl Request {
         return self.info.code;
     }
 
-    fn read_stream_until(stream: &mut Read, condition: &'static [u8]) -> BoxResult<String> {
+    fn read_stream_until(stream: &mut dyn Read, condition: &'static [u8]) -> BoxResult<String> {
         let mut buffer = vec![0; 1];
         let mut bytes = Vec::new();
         loop {
@@ -257,7 +255,7 @@ impl Request {
         Ok(out.to_string())
     }
 
-    fn send_request(agent: &str, stream: &mut Write, host: &str, path: &str) -> BoxResult<()> {
+    fn send_request(agent: &str, stream: &mut dyn Write, host: &str, path: &str) -> BoxResult<()> {
         let request_str = format!(
             "GET {} HTTP/1.0\r\nHost: {}\r\nAccept: */*\r\nUser-Agent: {}\r\nConnection: close\r\n\r\n",
             path, host, agent
@@ -290,7 +288,7 @@ impl Request {
         }
     }
 
-    fn read_request(stream: &mut Read) -> BoxResult<HttpHeaders> {
+    fn read_request(stream: &mut dyn Read) -> BoxResult<HttpHeaders> {
         let out = Request::read_stream_until(stream, b"\r\n")?;
         let mut httpinfo = Request::decode_first_line(&out)?;
 

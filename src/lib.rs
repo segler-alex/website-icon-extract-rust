@@ -32,7 +32,7 @@ use quick_xml::events::Event;
 /// * `url` - An url to check
 /// * `user_agent` - User agent header string for http requests
 /// * `tcp_timeout` - Http timeout in seconds
-pub fn extract_icons(url: &str, user_agent: &str, tcp_timeout: u32) -> Result<Vec<String>, Box<Error>> {
+pub fn extract_icons(url: &str, user_agent: &str, tcp_timeout: u32) -> Result<Vec<String>, Box<dyn Error>> {
     let x = Request::new_recursive(url, user_agent, tcp_timeout)?;
     let mut list: Vec<String> = analyze_location(x)?;
     list.push(String::from("/favicon.ico"));
@@ -61,13 +61,13 @@ fn check_connection(url: &str, user_agent: &str, tcp_timeout: u32) -> bool {
     }
 }
 
-fn normalize_url(base_url_str: &str, url: &str) -> Result<String, Box<Error>> {
+fn normalize_url(base_url_str: &str, url: &str) -> Result<String, Box<dyn Error>> {
     let base_url = Url::parse(base_url_str)?;
     let abs_url = base_url.join(&url)?;
     return Ok(abs_url.to_string());
 }
 
-fn analyze_location(mut x: Request) -> Result<Vec<String>, Box<Error>> {
+fn analyze_location(mut x: Request) -> Result<Vec<String>, Box<dyn Error>> {
     let content_type = x.get_header("content-type");
     if let Some(content_type) = content_type {
         if content_type.starts_with("text/html") {
@@ -87,10 +87,12 @@ fn attr_to_hash(
         .map(|x| x.unwrap())
         .map(|x| {
             (
-                reader.decode(x.key).to_string().to_lowercase(),
-                reader.decode(&x.value).to_string(),
+                reader.decode(x.key).map(|b| b.to_string().to_lowercase()),
+                reader.decode(&x.value).map(|c| c.to_string()),
             )
         })
+        .filter(|i| i.0.is_ok() && i.1.is_ok())
+        .map(|j| (j.0.unwrap(), j.1.unwrap()))
         .collect();
     attrs_hashed
 }
@@ -98,17 +100,19 @@ fn attr_to_hash(
 fn extract(
     attrs_hashed: &HashMap<String, String>,
     names: &Vec<String>,
-    name: &str,
+    key_name: &str,
     content: &str,
 ) -> Vec<String> {
     let mut list: Vec<String> = vec![];
-    let name: Option<&String> = attrs_hashed.get(name);
+    let name: Option<&String> = attrs_hashed.get(key_name);
     let content = attrs_hashed.get(content);
-    if name.is_some() && content.is_some() {
-        let name: String = name.unwrap().to_lowercase();
-        let content = content.unwrap().to_lowercase();
-        if names.contains(&name) {
-            list.push(content.to_string());
+    if let Some(name) = name {
+        if let Some(content) = content {
+            let name: String = name.to_lowercase();
+            let content = content.to_lowercase();
+            if names.contains(&name) {
+                list.push(content.to_string());
+            }
         }
     }
     list
@@ -131,26 +135,29 @@ fn check_start_elem(
         String::from("shortcut icon"),
         String::from("icon"),
     ];
-    let item: String = reader.decode(e.name()).to_string().to_lowercase();
     let mut list: Vec<String> = Vec::new();
 
-    if item == "meta" {
-        let attrs_hashed = attr_to_hash(&reader, e.attributes());
-        let l = extract(&attrs_hashed, &meta_name_attrs, "name", "content");
-        list.extend(l);
+    match e.name() {
+        b"meta" => {
+            let attrs_hashed = attr_to_hash(&reader, e.attributes());
+            let l = extract(&attrs_hashed, &meta_name_attrs, "name", "content");
+            list.extend(l);
+    
+            let l = extract(&attrs_hashed, &meta_property_attrs, "property", "content");
+            list.extend(l);
+        },
+        b"link" => {
+            let attrs_hashed = attr_to_hash(&reader, e.attributes());
+            let l = extract(&attrs_hashed, &link_rel_attrs, "rel", "href");
+            list.extend(l);
+        },
+        _ => {},
+    };
 
-        let l = extract(&attrs_hashed, &meta_property_attrs, "property", "content");
-        list.extend(l);
-    }
-    if item == "link" {
-        let attrs_hashed = attr_to_hash(&reader, e.attributes());
-        let l = extract(&attrs_hashed, &link_rel_attrs, "rel", "href");
-        list.extend(l);
-    }
     list
 }
 
-fn analyze_content(content: &str) -> Result<Vec<String>, Box<Error>> {
+fn analyze_content(content: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let mut reader = Reader::from_str(content);
     reader.trim_text(true);
     reader.check_end_names(false);
