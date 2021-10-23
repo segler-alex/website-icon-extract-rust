@@ -1,4 +1,4 @@
-use ::website_icon_extract;
+use ::website_icon_extract::ImageLink;
 
 fn main() {
     let mut args = std::env::args();
@@ -7,12 +7,13 @@ fn main() {
         std::process::exit(1);
     }
     let url: String = args.nth(1).expect("needs 1 parameter");
-    let result = website_icon_extract::extract_icons(&url, "agent", 10);
+    let result = ImageLink::from_website(url, "agent", 10);
 
     match result {
         Ok(result) => {
             for item in result {
-                println!("{}", item);
+                println!("{:?}", item);
+
             }
         }
         Err(err) => {
