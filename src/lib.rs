@@ -118,7 +118,7 @@ fn analyze_content(content: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let mut list: Vec<String> = Vec::new();
 
     loop {
-        match reader.read_event(&mut buf) {
+        match reader.read_event_into(&mut buf) {
             Ok(Event::Empty(ref e)) => {
                 list.extend(check_start_elem(&reader, e));
             }
@@ -192,8 +192,8 @@ fn attr_to_hash(
         .map(|x| x.unwrap())
         .map(|x| {
             (
-                reader.decode(x.key).map(|b| b.to_string().to_lowercase()),
-                reader.decode(&x.value).map(|c| c.to_string()),
+                reader.decoder().decode(x.key.local_name().as_ref()).map(|b| b.to_string().to_lowercase()),
+                reader.decoder().decode(&x.value).map(|c| c.to_string()),
             )
         })
         .filter(|i| i.0.is_ok() && i.1.is_ok())
@@ -243,7 +243,7 @@ fn check_start_elem(
     ];
     let mut list: Vec<String> = Vec::new();
 
-    match e.name() {
+    match e.name().local_name().as_ref() {
         b"meta" => {
             let attrs_hashed = attr_to_hash(&reader, e.attributes());
             let l = extract(&attrs_hashed, &meta_name_attrs, "name", "content");
